@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { generateHighlights, SummaryLength } from '../services/geminiService';
 import { FileData } from '../types';
-import { Lightbulb, Loader2, RefreshCw, Copy, Check, AlignLeft, AlignCenter, AlignJustify, Volume2, Square } from 'lucide-react';
+import { Lightbulb, Loader2, RefreshCw, Copy, Check, AlignLeft, AlignCenter, AlignJustify, Volume2, Square, Lock } from 'lucide-react';
 
-export const Highlights: React.FC<{ file: FileData }> = ({ file }) => {
+export const Highlights: React.FC<{ file: FileData; isPremium?: boolean; onShowUpgrade?: () => void }> = ({ file, isPremium = false, onShowUpgrade = () => {} }) => {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -63,6 +64,14 @@ export const Highlights: React.FC<{ file: FileData }> = ({ file }) => {
     }
   };
 
+  const handleLengthChange = (length: SummaryLength) => {
+    if (!isPremium && length === 'LONG') {
+        onShowUpgrade();
+    } else {
+        setSummaryLength(length);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 animate-in fade-in duration-500" role="status">
@@ -88,7 +97,7 @@ export const Highlights: React.FC<{ file: FileData }> = ({ file }) => {
             {/* Length Selector */}
             <div className="flex bg-white dark:bg-slate-700 rounded-lg p-1 border border-slate-200 dark:border-slate-600 shadow-sm" role="group" aria-label="Longueur du résumé">
                 <button
-                    onClick={() => setSummaryLength('SHORT')}
+                    onClick={() => handleLengthChange('SHORT')}
                     aria-pressed={summaryLength === 'SHORT'}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${summaryLength === 'SHORT' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
                     title="Résumé court"
@@ -96,7 +105,7 @@ export const Highlights: React.FC<{ file: FileData }> = ({ file }) => {
                     <AlignLeft className="w-3 h-3" /> Court
                 </button>
                 <button
-                    onClick={() => setSummaryLength('MEDIUM')}
+                    onClick={() => handleLengthChange('MEDIUM')}
                     aria-pressed={summaryLength === 'MEDIUM'}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${summaryLength === 'MEDIUM' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
                     title="Résumé moyen"
@@ -104,12 +113,12 @@ export const Highlights: React.FC<{ file: FileData }> = ({ file }) => {
                     <AlignCenter className="w-3 h-3" /> Moyen
                 </button>
                 <button
-                    onClick={() => setSummaryLength('LONG')}
+                    onClick={() => handleLengthChange('LONG')}
                     aria-pressed={summaryLength === 'LONG'}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${summaryLength === 'LONG' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${!isPremium ? 'opacity-60 cursor-pointer' : ''} ${summaryLength === 'LONG' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
                     title="Résumé détaillé"
                 >
-                    <AlignJustify className="w-3 h-3" /> Long
+                    {!isPremium ? <Lock className="w-3 h-3" /> : <AlignJustify className="w-3 h-3" />} Long
                 </button>
             </div>
 

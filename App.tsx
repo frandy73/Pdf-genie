@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { ChatInterface } from './components/ChatInterface';
@@ -6,14 +7,20 @@ import { FlashcardMode } from './components/FlashcardMode';
 import { StudyGuide } from './components/StudyGuide';
 import { Highlights } from './components/Highlights';
 import { FAQMode } from './components/FAQMode';
+import { UpgradeModal } from './components/UpgradeModal';
 import { generateFileDescription } from './services/geminiService';
 import { FileData, AppMode } from './types';
-import { MessageSquare, BookOpen, BrainCircuit, GraduationCap, Sparkles, LogOut, LayoutDashboard, HelpCircle, FileText, Loader2, Moon, Sun } from 'lucide-react';
+import { MessageSquare, BookOpen, BrainCircuit, GraduationCap, Sparkles, LogOut, LayoutDashboard, CircleHelp, FileText, Loader2, Moon, Sun, Crown, Lock } from 'lucide-react';
 
 const App: React.FC = () => {
   const [file, setFile] = useState<FileData | null>(null);
   const [mode, setMode] = useState<AppMode>(AppMode.UPLOAD);
   const [fileDescription, setFileDescription] = useState<string>('');
+  
+  // Monetization State
+  const [isPremium, setIsPremium] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || 
@@ -85,17 +92,23 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (!file) return null;
 
+    const commonProps = {
+        file,
+        isPremium,
+        onShowUpgrade: () => setShowUpgradeModal(true)
+    };
+
     switch (mode) {
       case AppMode.CHAT:
         return <ChatInterface file={file} />;
       case AppMode.QUIZ:
-        return <QuizMode file={file} />;
+        return <QuizMode {...commonProps} />;
       case AppMode.FLASHCARDS:
         return <FlashcardMode file={file} />;
       case AppMode.GUIDE:
-        return <StudyGuide file={file} />;
+        return <StudyGuide {...commonProps} />;
       case AppMode.HIGHLIGHTS:
-        return <Highlights file={file} />;
+        return <Highlights {...commonProps} />;
       case AppMode.FAQ:
         return <FAQMode file={file} />;
       case AppMode.DASHBOARD:
@@ -132,11 +145,12 @@ const App: React.FC = () => {
               onKeyDown={(e) => handleCardKeyDown(e, AppMode.GUIDE)}
               role="button"
               tabIndex={0}
-              className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none cursor-pointer hover:scale-[1.02] transition-transform focus:outline-none focus:ring-4 focus:ring-indigo-300"
+              className="relative bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none cursor-pointer hover:scale-[1.02] transition-transform focus:outline-none focus:ring-4 focus:ring-indigo-300 overflow-hidden"
             >
               <BookOpen className="w-8 h-8 mb-4 opacity-80" aria-hidden="true" />
               <h3 className="text-xl font-bold mb-1">Guide d'étude</h3>
               <p className="text-indigo-100 text-sm">Générer un résumé structuré</p>
+              {!isPremium && <div className="absolute top-4 right-4 bg-white/20 p-1.5 rounded-full backdrop-blur-sm"><Lock className="w-4 h-4 text-white" /></div>}
             </div>
 
             <div 
@@ -144,13 +158,14 @@ const App: React.FC = () => {
               onKeyDown={(e) => handleCardKeyDown(e, AppMode.QUIZ)}
               role="button"
               tabIndex={0}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+              className="relative bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
             >
               <div className="bg-orange-100 dark:bg-orange-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-200 dark:group-hover:bg-orange-900/50 transition-colors">
                  <GraduationCap className="w-6 h-6 text-orange-600 dark:text-orange-400" aria-hidden="true" />
               </div>
               <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Quiz</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm">Testez vos connaissances</p>
+              {!isPremium && <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-600"><Lock className="w-5 h-5" /></div>}
             </div>
 
             <div 
@@ -191,13 +206,14 @@ const App: React.FC = () => {
                onKeyDown={(e) => handleCardKeyDown(e, AppMode.HIGHLIGHTS)}
                role="button"
                tabIndex={0}
-               className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+               className="relative bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
             >
               <div className="bg-yellow-100 dark:bg-yellow-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-900/50 transition-colors">
                  <Sparkles className="w-6 h-6 text-yellow-600 dark:text-yellow-400" aria-hidden="true" />
               </div>
               <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Highlights</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm">Résumé et points essentiels</p>
+              {!isPremium && <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-600"><Lock className="w-5 h-5" /></div>}
             </div>
 
              <div 
@@ -208,7 +224,7 @@ const App: React.FC = () => {
                className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
             >
               <div className="bg-emerald-100 dark:bg-emerald-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors">
-                 <HelpCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                 <CircleHelp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
               </div>
               <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Questions & Réponses</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm">FAQ générée automatiquement</p>
@@ -238,6 +254,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col md:flex-row overflow-hidden font-sans transition-colors duration-300">
+      
+      {/* UPGRADE MODAL */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+        onUpgrade={() => setIsPremium(true)}
+      />
+
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col z-20 shadow-sm transition-colors duration-300">
         <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
@@ -259,12 +283,32 @@ const App: React.FC = () => {
           <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Études</div>
           <SidebarItem activeMode={AppMode.GUIDE} icon={BookOpen} label="Guide d'étude" />
           <SidebarItem activeMode={AppMode.HIGHLIGHTS} icon={Sparkles} label="Highlights" />
-          <SidebarItem activeMode={AppMode.FAQ} icon={HelpCircle} label="Questions & Rép." />
+          <SidebarItem activeMode={AppMode.FAQ} icon={CircleHelp} label="Questions & Rép." />
           <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Pratique</div>
           <SidebarItem activeMode={AppMode.CHAT} icon={MessageSquare} label="Discussion" />
           <SidebarItem activeMode={AppMode.QUIZ} icon={GraduationCap} label="Quiz" />
           <SidebarItem activeMode={AppMode.FLASHCARDS} icon={BrainCircuit} label="Flashcards" />
         </nav>
+
+        {/* PREMIUM BANNER */}
+        {!isPremium && (
+          <div className="p-4 mx-4 mb-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white text-center shadow-lg">
+             <Crown className="w-6 h-6 mx-auto mb-2 text-yellow-300 animate-pulse" />
+             <h3 className="font-bold text-sm mb-1">Passer Premium</h3>
+             <p className="text-xs text-indigo-100 mb-3">Débloquez l'export et les quiz illimités.</p>
+             <button 
+                onClick={() => setShowUpgradeModal(true)}
+                className="w-full bg-white text-indigo-600 py-2 rounded-lg text-xs font-bold hover:bg-indigo-50 transition-colors"
+             >
+                Upgrade
+             </button>
+          </div>
+        )}
+        {isPremium && (
+            <div className="px-6 py-2 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold justify-center">
+                <Crown className="w-3 h-3" /> Membre Pro
+            </div>
+        )}
 
         <div className="p-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
           <button
@@ -290,7 +334,10 @@ const App: React.FC = () => {
         {/* Mobile Header (Only visible on small screens) */}
         <div className="md:hidden bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex justify-between items-center transition-colors">
            <span className="font-bold text-indigo-700 dark:text-indigo-400">StudyGenius</span>
-           <button onClick={() => setMode(AppMode.DASHBOARD)} className="text-slate-600 dark:text-slate-300" aria-label="Retour au tableau de bord"><LayoutDashboard /></button>
+           <div className="flex gap-3">
+             {!isPremium && <button onClick={() => setShowUpgradeModal(true)} className="text-indigo-600"><Crown className="w-5 h-5" /></button>}
+             <button onClick={() => setMode(AppMode.DASHBOARD)} className="text-slate-600 dark:text-slate-300" aria-label="Retour au tableau de bord"><LayoutDashboard /></button>
+           </div>
         </div>
         
         <div className="flex-1 overflow-hidden p-4 md:p-8 relative">

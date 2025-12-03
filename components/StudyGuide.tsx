@@ -1,12 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { generateStudyGuide } from '../services/geminiService';
 import { FileData, StudyGuideSection } from '../types';
-import { Download, Loader2, Copy, Check, SortAsc, AlignJustify, ListOrdered } from 'lucide-react';
+import { Download, Loader2, Copy, Check, ArrowDownAZ, AlignJustify, ListOrdered, Lock } from 'lucide-react';
 
 type SortMethod = 'ORIGINAL' | 'TITLE' | 'LENGTH';
 
-export const StudyGuide: React.FC<{ file: FileData }> = ({ file }) => {
+export const StudyGuide: React.FC<{ file: FileData; isPremium?: boolean; onShowUpgrade?: () => void }> = ({ file, isPremium = false, onShowUpgrade = () => {} }) => {
   const [sections, setSections] = useState<StudyGuideSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -43,6 +44,11 @@ export const StudyGuide: React.FC<{ file: FileData }> = ({ file }) => {
   };
 
   const handlePrint = () => {
+    if (!isPremium) {
+        onShowUpgrade();
+        return;
+    }
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
@@ -113,7 +119,7 @@ export const StudyGuide: React.FC<{ file: FileData }> = ({ file }) => {
                 title="Ordre alphabétique"
                 aria-label="Trier par ordre alphabétique"
               >
-                <SortAsc className="w-4 h-4" />
+                <ArrowDownAZ className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => setSortMethod('LENGTH')}
@@ -140,9 +146,9 @@ export const StudyGuide: React.FC<{ file: FileData }> = ({ file }) => {
             <button 
                 onClick={handlePrint}
                 aria-label="Exporter ou imprimer le guide d'étude"
-                className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${!isPremium ? 'text-slate-400 cursor-pointer bg-slate-100 dark:bg-slate-700' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'}`}
             >
-                <Download className="w-4 h-4" aria-hidden="true" />
+                {!isPremium ? <Lock className="w-4 h-4" /> : <Download className="w-4 h-4" aria-hidden="true" />}
                 <span className="hidden sm:inline">Exporter</span>
             </button>
           </div>

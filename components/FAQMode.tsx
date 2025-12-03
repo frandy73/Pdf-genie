@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { generateFAQ } from '../services/geminiService';
 import { FileData, QAPair } from '../types';
-import { HelpCircle, ChevronDown, ChevronUp, Loader2, Search, X, SortAsc, ListOrdered } from 'lucide-react';
+import { CircleHelp, ChevronDown, ChevronUp, Loader2, Search, X, ArrowDownAZ, ListOrdered } from 'lucide-react';
 
 export const FAQMode: React.FC<{ file: FileData }> = ({ file }) => {
   const [qaPairs, setQaPairs] = useState<QAPair[]>([]);
@@ -80,7 +81,7 @@ export const FAQMode: React.FC<{ file: FileData }> = ({ file }) => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
                 <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-lg">
-                    <HelpCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-500" aria-hidden="true" />
+                    <CircleHelp className="w-6 h-6 text-emerald-600 dark:text-emerald-500" aria-hidden="true" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Questions Fréquentes</h2>
             </div>
@@ -100,7 +101,7 @@ export const FAQMode: React.FC<{ file: FileData }> = ({ file }) => {
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${sortOrder === 'AZ' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                     title="Ordre alphabétique"
                 >
-                    <SortAsc className="w-4 h-4" />
+                    <ArrowDownAZ className="w-4 h-4" />
                     <span className="hidden sm:inline">A-Z</span>
                 </button>
             </div>

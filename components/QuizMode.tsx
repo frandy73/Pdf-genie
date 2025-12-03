@@ -1,16 +1,19 @@
+
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, AlertCircle, RefreshCw, ChevronRight, GraduationCap, PlayCircle, Filter, Check, X, List } from 'lucide-react';
+import { CircleCheck, CircleX, CircleAlert, RefreshCw, ChevronRight, GraduationCap, CirclePlay, Filter, Check, X, List, Lock } from 'lucide-react';
 import { generateQuiz } from '../services/geminiService';
 import { FileData, QuizQuestion } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface QuizModeProps {
   file: FileData;
+  isPremium?: boolean;
+  onShowUpgrade?: () => void;
 }
 
 type FilterType = 'ALL' | 'CORRECT' | 'INCORRECT';
 
-export const QuizMode: React.FC<QuizModeProps> = ({ file }) => {
+export const QuizMode: React.FC<QuizModeProps> = ({ file, isPremium = false, onShowUpgrade = () => {} }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -91,6 +94,14 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file }) => {
     }
   };
 
+  const handleCountSelection = (count: number) => {
+    if (!isPremium && count > 5) {
+        onShowUpgrade();
+    } else {
+        setNumQuestions(count);
+    }
+  }
+
   // 1. SETUP SCREEN
   if (isSetup) {
     return (
@@ -103,28 +114,37 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file }) => {
           <p className="text-slate-600 dark:text-slate-400 mb-8">Choisissez le nombre de questions pour tester vos connaissances.</p>
 
           <div className="grid grid-cols-2 gap-4 mb-8" role="group" aria-label="Nombre de questions">
-            {[3, 5, 10, 15].map((count) => (
-              <button
-                key={count}
-                onClick={() => setNumQuestions(count)}
-                aria-pressed={numQuestions === count}
-                className={`
-                  p-4 rounded-xl border-2 font-semibold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900
-                  ${numQuestions === count 
-                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' 
-                    : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 text-slate-600 dark:text-slate-400'}
-                `}
-              >
-                {count} Questions
-              </button>
-            ))}
+            {[3, 5, 10, 15].map((count) => {
+              const isLocked = !isPremium && count > 5;
+              return (
+                <button
+                    key={count}
+                    onClick={() => handleCountSelection(count)}
+                    aria-pressed={numQuestions === count}
+                    className={`
+                    relative p-4 rounded-xl border-2 font-semibold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900
+                    ${numQuestions === count 
+                        ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' 
+                        : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 text-slate-600 dark:text-slate-400'}
+                    ${isLocked ? 'opacity-60 cursor-pointer bg-slate-50 dark:bg-slate-800' : ''}
+                    `}
+                >
+                    {count} Questions
+                    {isLocked && (
+                        <div className="absolute top-2 right-2 text-slate-400">
+                            <Lock className="w-4 h-4" />
+                        </div>
+                    )}
+                </button>
+              );
+            })}
           </div>
 
           <button
             onClick={startQuiz}
             className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 focus:outline-none focus:ring-4 focus:ring-indigo-300"
           >
-            <PlayCircle className="w-6 h-6" aria-hidden="true" />
+            <CirclePlay className="w-6 h-6" aria-hidden="true" />
             Commencer le Quiz
           </button>
         </div>
@@ -146,7 +166,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file }) => {
   if (questions.length === 0) {
     return (
       <div className="text-center p-8" role="alert">
-        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" aria-hidden="true" />
+        <CircleAlert className="w-12 h-12 text-red-400 mx-auto mb-4" aria-hidden="true" />
         <p className="text-slate-800 dark:text-slate-200">Impossible de générer le quiz. Essayez à nouveau.</p>
         <button onClick={handleReset} className="mt-4 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Retour à la configuration</button>
       </div>
@@ -249,9 +269,9 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file }) => {
                             <div key={item.originalIndex} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <div className="flex items-start gap-3 mb-3">
                                     {isCorrect ? (
-                                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
+                                        <CircleCheck className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
                                     ) : (
-                                        <XCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+                                        <CircleX className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
                                     )}
                                     <div className="flex-1">
                                         <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Question {item.originalIndex + 1}</span>
@@ -352,10 +372,10 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file }) => {
                 >
                   <span className="font-medium text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">{option}</span>
                   {answerSubmitted && idx === currentQ.correctAnswerIndex && (
-                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-500" aria-label="Bonne réponse" />
+                    <CircleCheck className="w-5 h-5 text-green-600 dark:text-green-500" aria-label="Bonne réponse" />
                   )}
                   {answerSubmitted && idx === selectedOption && idx !== currentQ.correctAnswerIndex && (
-                    <XCircle className="w-5 h-5 text-red-600 dark:text-red-500" aria-label="Mauvaise réponse" />
+                    <CircleX className="w-5 h-5 text-red-600 dark:text-red-500" aria-label="Mauvaise réponse" />
                   )}
                 </button>
               );

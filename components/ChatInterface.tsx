@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Loader2, RefreshCw, History, X, Sparkles, MessageCircleQuestion } from 'lucide-react';
+import { Send, Bot, User, Loader2, RefreshCw, History, X, Sparkles, MessageCircleQuestion, CircleAlert, RotateCcw, Pencil } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Message, FileData } from '../types';
 import { sendChatMessage, generateSuggestedQuestions } from '../services/geminiService';
@@ -17,6 +18,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,6 +38,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
     fetchSuggestions();
   }, [file]);
 
+  const handleReset = () => {
+    setMessages([{ role: 'model', text: `Bonjour ! J'ai analysé **${file.name}**. Que souhaitez-vous savoir ?` }]);
+    setShowHistory(false);
+    setInput('');
+    setTimeout(() => {
+        inputRef.current?.focus();
+    }, 100);
+  };
+
   const handleSend = async (overrideText?: string) => {
     const textToSend = overrideText || input;
     if (!textToSend.trim() || isLoading) return;
@@ -50,9 +61,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
       const responseText = await sendChatMessage(file, messages, textToSend);
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'model', text: "Désolé, une erreur est survenue.", isError: true }]);
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: "Une erreur technique est survenue lors de la communication avec l'IA.", 
+        isError: true 
+      }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRetryWithEdit = (index: number) => {
+    // Find the previous user message (index - 1)
+    const previousUserMsg = messages[index - 1];
+    if (previousUserMsg && previousUserMsg.role === 'user') {
+        setInput(previousUserMsg.text);
+        inputRef.current?.focus();
     }
   };
 
@@ -85,7 +109,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
             <History className="w-4 h-4" aria-hidden="true" />
           </button>
           <button 
-            onClick={() => setMessages([{ role: 'model', text: "Conversation réinitialisée." }])}
+            onClick={handleReset}
             className="p-2 hover:bg-indigo-500 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white"
             title="Réinitialiser"
             aria-label="Réinitialiser la conversation"
@@ -123,16 +147,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
                 ${msg.role === 'user' 
                   ? 'bg-indigo-600 text-white rounded-br-none' 
                   : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-700 rounded-bl-none'}
-                ${msg.isError ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' : ''}
+                ${msg.isError ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200' : ''}
               `}
             >
-              <div className="flex items-center gap-2 mb-1 opacity-70 text-xs font-bold uppercase tracking-wider" aria-hidden="true">
-                {msg.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
-                {msg.role === 'user' ? 'Vous' : 'IA'}
+              <div className={`flex items-center gap-2 mb-1 opacity-70 text-xs font-bold uppercase tracking-wider ${msg.isError ? 'text-red-600 dark:text-red-400' : ''}`} aria-hidden="true">
+                {msg.role === 'user' ? <User className="w-3 h-3" /> : (msg.isError ? <CircleAlert className="w-3 h-3" /> : <Bot className="w-3 h-3" />)}
+                {msg.role === 'user' ? 'Vous' : (msg.isError ? 'Erreur' : 'IA')}
               </div>
               <div className="sr-only">
                 {msg.role === 'user' ? 'Vous avez dit :' : 'L\'IA répond :'}
               </div>
+              
               <div className={`text-sm md:text-base ${msg.role === 'user' ? '' : ''}`}>
                 <ReactMarkdown
                   components={{
@@ -197,6 +222,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
                 >
                   {msg.text}
                 </ReactMarkdown>
+
+                {/* Error Recovery UI */}
+                {msg.isError && (
+                  <div className="mt-4 pt-3 border-t border-red-200 dark:border-red-800 flex flex-col gap-3">
+                    <p className="text-xs text-red-700 dark:text-red-300 font-medium opacity-90">
+                      Cela peut arriver si la demande est trop complexe ou si la connexion est instable.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button 
+                        onClick={() => handleRetryWithEdit(idx)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-semibold rounded-lg transition-colors shadow-sm"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Reformuler
+                      </button>
+                      <button 
+                        onClick={handleReset}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-semibold rounded-lg transition-colors shadow-sm"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Réinitialiser
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -217,6 +267,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
         <div className="p-4 pb-2">
           <div className="flex gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -287,12 +338,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
                 messages.map((msg, idx) => (
                   <div key={idx} className="text-sm border-b border-slate-100 dark:border-slate-700 last:border-0 pb-4 last:pb-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
-                        {msg.role === 'user' ? 'VOUS' : 'IA'}
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : (msg.isError ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300')}`}>
+                        {msg.role === 'user' ? 'VOUS' : (msg.isError ? 'ERREUR' : 'IA')}
                       </span>
                       <span className="text-xs text-slate-400 dark:text-slate-500">Message {idx + 1}</span>
                     </div>
-                    <div className="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap pl-1">
+                    <div className={`text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap pl-1 ${msg.isError ? 'text-red-600 dark:text-red-400 italic' : ''}`}>
                       {msg.role === 'model' ? (
                          // Simple text rendering for history to keep it compact, or remove markdown formatting
                          msg.text.replace(/[*#_`]/g, '')
