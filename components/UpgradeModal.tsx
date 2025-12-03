@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Check, Star, Zap, Shield, Crown, MessageCircle, Phone } from 'lucide-react';
+import { X, Check, Zap, Shield, Crown, MessageCircle } from 'lucide-react';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -11,101 +11,112 @@ interface UpgradeModalProps {
 export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade }) => {
   if (!isOpen) return null;
 
-  // REMPLACEZ CE NUMÉRO PAR LE VOTRE (Format international sans +)
-  const WHATSAPP_NUMBER = "1234567890"; 
+  // Numéro WhatsApp du manager (Exemple générique, à remplacer)
+  const WHATSAPP_NUMBER = "237000000000"; 
   
   const handleWhatsAppPurchase = () => {
-    // 1. Construire le lien WhatsApp
-    const message = encodeURIComponent("Bonjour, je souhaite souscrire à l'offre StudyGenius Pro pour débloquer toutes les fonctionnalités.");
+    // Message pré-rempli pour faciliter la validation
+    const message = encodeURIComponent("Bonjour, je souhaite activer mon compte Premium StudyGenius. Je suis prêt à procéder au paiement.");
     const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
 
-    // 2. Ouvrir WhatsApp dans un nouvel onglet
     window.open(whatsappUrl, '_blank');
 
-    // 3. Simuler l'activation (Pour la démo seulement - En production, vous activeriez après paiement)
+    // Feedback visuel sur le bouton
     const btn = document.getElementById('whatsapp-btn');
     if (btn) {
-        btn.textContent = "Vérification en cours...";
+        btn.innerHTML = `<span class="animate-pulse">Validation en attente...</span>`;
         btn.classList.add('opacity-75', 'cursor-wait');
     }
     
-    // On active le mode premium après un court délai pour permettre à l'utilisateur de tester
+    // Simulation d'activation pour la démo (dans un vrai cas, l'admin active le compte après réception)
     setTimeout(() => {
         onUpgrade();
         onClose();
-    }, 2000);
+    }, 6000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 overflow-y-auto">
-      <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl my-auto flex flex-col lg:flex-row overflow-hidden animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh] lg:max-h-none">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm p-4 md:p-6 flex items-center justify-center">
+      {/* Container principal responsive : Pleine largeur mobile, max-width desktop, flex column mobile, row desktop */}
+      <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col lg:flex-row overflow-hidden animate-in fade-in zoom-in-95 duration-300 ring-1 ring-white/10">
         
-        {/* Close Button (Mobile optimized placement) */}
+        {/* Bouton Fermer */}
         <button 
             onClick={onClose}
-            className="absolute top-4 right-4 z-20 text-white/80 lg:text-slate-400 hover:text-white lg:hover:text-slate-600 dark:hover:text-slate-200 bg-black/20 lg:bg-transparent p-2 rounded-full hover:bg-black/40 lg:hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="absolute top-4 right-4 z-20 bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 p-2 rounded-full text-slate-500 dark:text-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
             aria-label="Fermer"
         >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
         </button>
 
-        {/* Left Side - Visual & Value Prop */}
-        <div className="w-full lg:w-2/5 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 lg:p-10 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
-          {/* Decorative Blobs */}
+        {/* Côté Gauche : Visuel & Avantages */}
+        <div className="w-full lg:w-5/12 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
+          {/* Décoration d'arrière-plan */}
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-             <div className="absolute top-[-20%] left-[-20%] w-64 h-64 rounded-full bg-white blur-3xl"></div>
-             <div className="absolute bottom-[-20%] right-[-20%] w-64 h-64 rounded-full bg-pink-500 blur-3xl"></div>
+             <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full bg-white blur-3xl"></div>
+             <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-pink-500 blur-3xl"></div>
           </div>
           
-          <div className="relative z-10 mt-8 lg:mt-0">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs sm:text-sm font-medium mb-6 border border-white/10">
-                <Crown className="w-4 h-4 text-yellow-300" />
-                <span>Devenez un Génie</span>
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold mb-6 border border-white/10 uppercase tracking-wide shadow-lg">
+                <Crown className="w-3 h-3 text-yellow-300" />
+                <span>Offre Premium</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 leading-tight">Débloquez tout le potentiel de vos études.</h2>
-            <p className="text-indigo-100 opacity-90 text-sm sm:text-base">Rejoignez l'élite des étudiants. Quiz illimités, exports PDF et analyses approfondies.</p>
+            <h2 className="text-3xl lg:text-4xl font-extrabold mb-4 leading-tight">Libérez votre potentiel.</h2>
+            <p className="text-indigo-100 text-lg opacity-90">Accédez à des outils d'étude illimités et boostez vos résultats.</p>
           </div>
 
-          <div className="relative z-10 mt-8 space-y-4 hidden sm:block">
-             <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/10 rounded-lg"><Zap className="w-5 h-5" /></div>
-                <span className="font-medium text-sm">IA sans limite de vitesse</span>
+          <div className="relative z-10 mt-8 space-y-5">
+             <div className="flex items-center gap-4 group">
+                <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm group-hover:bg-white/20 transition-colors"><Zap className="w-6 h-6 text-yellow-300" /></div>
+                <div>
+                    <div className="font-bold text-lg">IA Illimitée</div>
+                    <div className="text-xs text-indigo-200 opacity-80">Générez autant de quiz et résumés que nécessaire.</div>
+                </div>
              </div>
-             <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/10 rounded-lg"><Shield className="w-5 h-5" /></div>
-                <span className="font-medium text-sm">Garantie satisfait ou remboursé</span>
+             <div className="flex items-center gap-4 group">
+                <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm group-hover:bg-white/20 transition-colors"><Shield className="w-6 h-6 text-emerald-300" /></div>
+                <div>
+                    <div className="font-bold text-lg">Validation Simplifiée</div>
+                    <div className="text-xs text-indigo-200 opacity-80">Contact direct via WhatsApp pour activer votre compte.</div>
+                </div>
              </div>
           </div>
         </div>
 
-        {/* Right Side - Pricing & Action */}
-        <div className="w-full lg:w-3/5 p-6 sm:p-8 lg:p-10 bg-white dark:bg-slate-800 flex flex-col overflow-y-auto">
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 text-center lg:text-left">Choisir votre plan</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-center lg:text-left mb-8 text-sm">Passez au niveau supérieur dès aujourd'hui.</p>
+        {/* Côté Droit : Plans & Action de paiement */}
+        <div className="w-full lg:w-7/12 p-6 lg:p-10 bg-white dark:bg-slate-800 flex flex-col">
+          <div className="text-center lg:text-left mb-8">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Choisissez votre formule</h3>
+            <p className="text-slate-500 dark:text-slate-400">Investissez dans votre réussite dès aujourd'hui.</p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            {/* Free Plan */}
-            <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Gratuit</h4>
-                <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4">0 FCFA <span className="text-sm font-normal text-slate-500">/mois</span></div>
-                <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Quiz limités (5 questions)</li>
-                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Résumés courts</li>
-                    <li className="flex gap-2 items-center text-slate-400"><X className="w-4 h-4 flex-shrink-0" /> Pas d'export PDF</li>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {/* Plan Gratuit */}
+            <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-600 transition-colors bg-slate-50 dark:bg-slate-800/50 opacity-75 hover:opacity-100">
+                <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-bold text-slate-700 dark:text-slate-300">Standard</h4>
+                </div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Gratuit</div>
+                <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-slate-400" /> Quiz simples (5 questions)</li>
+                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-slate-400" /> Mode lecture limité</li>
                 </ul>
             </div>
 
-            {/* Pro Plan */}
-            <div className="border-2 border-indigo-600 dark:border-indigo-500 rounded-xl p-5 relative bg-indigo-50/50 dark:bg-indigo-900/10 shadow-sm">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
-                    Recommandé
+            {/* Plan Premium */}
+            <div className="border-2 border-indigo-600 dark:border-indigo-500 rounded-xl p-5 relative bg-indigo-50/50 dark:bg-indigo-900/10 cursor-pointer shadow-lg transform hover:-translate-y-1 transition-all duration-300">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap shadow-md flex items-center gap-1">
+                    <Crown className="w-3 h-3 fill-current" /> Recommandé
                 </div>
-                <h4 className="font-bold text-indigo-700 dark:text-indigo-400 mb-2">Pro Premium</h4>
-                <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4">3000 FCFA <span className="text-sm font-normal text-slate-500">/mois</span></div>
-                <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
-                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-indigo-600 flex-shrink-0" /> <b>Tout illimité</b></li>
-                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-indigo-600 flex-shrink-0" /> Quiz longs & Flashcards</li>
-                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-indigo-600 flex-shrink-0" /> Exportation & Impression</li>
+                <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-bold text-indigo-700 dark:text-indigo-400">Premium</h4>
+                </div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4">5000 FCFA <span className="text-xs font-normal text-slate-500">/an</span></div>
+                <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 font-bold" /> <b>Export PDF & Impression</b></li>
+                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 font-bold" /> Quiz & Flashcards illimités</li>
+                    <li className="flex gap-2 items-center"><Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 font-bold" /> Résumés détaillés (Long)</li>
                 </ul>
             </div>
           </div>
@@ -114,14 +125,14 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onU
             <button
                 id="whatsapp-btn"
                 onClick={handleWhatsAppPurchase}
-                className="w-full py-4 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold text-lg shadow-lg shadow-green-200 dark:shadow-none transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 group"
+                className="w-full py-4 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold text-lg shadow-lg shadow-green-200 dark:shadow-none transition-all transform active:scale-[0.99] flex items-center justify-center gap-3 group focus:outline-none focus:ring-4 focus:ring-green-200 dark:focus:ring-green-900"
             >
-                <MessageCircle className="w-6 h-6 fill-current" />
-                <span>Activer via WhatsApp</span>
+                <MessageCircle className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
+                <span>Contacter le Manager pour Payer</span>
             </button>
-            <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-4 flex items-center justify-center gap-1">
-                <Shield className="w-3 h-3" />
-                Contact direct avec le manager pour validation instantanée.
+            <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-4 leading-relaxed">
+                Paiement sécurisé par Mobile Money (Orange/MTN) ou virement.<br/>
+                Votre compte sera activé instantanément par le manager.
             </p>
           </div>
         </div>

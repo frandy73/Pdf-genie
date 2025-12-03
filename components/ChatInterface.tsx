@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Loader2, RefreshCw, History, X, Sparkles, MessageCircleQuestion, CircleAlert, RotateCcw, Pencil } from 'lucide-react';
+import { Send, Bot, User, Loader2, RefreshCw, History, X, Sparkles, MessageCircleQuestion, CircleAlert, RotateCcw, Pencil, Save, ArchiveRestore } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Message, FileData } from '../types';
 import { sendChatMessage, generateSuggestedQuestions } from '../services/geminiService';
@@ -17,8 +17,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [canRestore, setCanRestore] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Unique key for local storage based on file name
+  const storageKey = `chat_history_${file.name}`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,6 +32,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Check for saved history on mount or file change
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            // Only suggest restore if there is more than just the initial message
+            if (parsed.length > 1) {
+                setCanRestore(true);
+            }
+        } catch (e) {
+            console.error("Error parsing chat history", e);
+        }
+    } else {
+        setCanRestore(false);
+    }
+  }, [file.name, storageKey]);
+
+  // Auto-save history when messages change
+  useEffect(() => {
+    if (messages.length > 1) {
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+    }
+  }, [messages, storageKey]);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -38,10 +68,36 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
     fetchSuggestions();
   }, [file]);
 
+  const handleRestoreHistory = () => {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+          try {
+              setMessages(JSON.parse(saved));
+              setCanRestore(false);
+              // Small timeout to allow render before scrolling
+              setTimeout(scrollToBottom, 100);
+          } catch (e) {
+              console.error("Restore failed", e);
+          }
+      }
+  };
+
+  const handleDismissRestore = () => {
+      setCanRestore(false);
+      // Optional: Clear storage if user dismisses? 
+      // For now, we keep it in storage but hide the prompt for this session to avoid accidental data loss.
+  };
+
   const handleReset = () => {
-    setMessages([{ role: 'model', text: `Bonjour ! J'ai analysé **${file.name}**. Que souhaitez-vous savoir ?` }]);
+    const initialMsg: Message = { role: 'model', text: `Bonjour ! J'ai analysé **${file.name}**. Que souhaitez-vous savoir ?` };
+    setMessages([initialMsg]);
     setShowHistory(false);
     setInput('');
+    setCanRestore(false);
+    
+    // Clear local storage on reset
+    localStorage.removeItem(storageKey);
+
     setTimeout(() => {
         inputRef.current?.focus();
     }, 100);
@@ -55,6 +111,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
+    setCanRestore(false); // Hide restore prompt once interaction starts
 
     try {
       // Pass only the message history (excluding the new user message which is handled in the service)
@@ -103,7 +160,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
           <button 
             onClick={() => setShowHistory(true)}
             className="p-2 hover:bg-indigo-500 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white"
-            title="Historique chat"
+            title="Historique complet"
             aria-label="Voir l'historique de la conversation"
           >
             <History className="w-4 h-4" aria-hidden="true" />
@@ -130,6 +187,30 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
             <div className="absolute top-0 bottom-0 left-0 bg-indigo-600 dark:bg-indigo-500 rounded-full progress-bar-animate"></div>
           </div>
         </div>
+      )}
+
+      {/* Restore Session Banner */}
+      {canRestore && messages.length === 1 && (
+         <div className="bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800 p-3 flex items-center justify-between animate-in slide-in-from-top-5">
+            <div className="flex items-center gap-2 text-sm text-emerald-800 dark:text-emerald-200">
+                <ArchiveRestore className="w-4 h-4" />
+                <span>Une conversation précédente existe.</span>
+            </div>
+            <div className="flex gap-2">
+                <button 
+                    onClick={handleRestoreHistory}
+                    className="text-xs font-bold bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-800 dark:hover:bg-emerald-700 text-emerald-700 dark:text-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                    Restaurer
+                </button>
+                <button 
+                    onClick={handleDismissRestore}
+                    className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-800 rounded-full"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            </div>
+         </div>
       )}
 
       {/* Messages Main Area */}
@@ -288,7 +369,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ file }) => {
           </div>
         </div>
 
-        {/* Suggestions - Only show when conversation hasn't really started (1 message = initial bot greeting) */}
+        {/* Suggestions - Only show when conversation hasn't really started (1 message = initial bot greeting) AND user hasn't restored history */}
         {suggestions.length > 0 && messages.length === 1 && !isLoading && (
           <div className="px-4 pb-4 flex flex-wrap gap-2 animate-in slide-in-from-bottom-2">
             <div className="w-full flex items-center gap-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
