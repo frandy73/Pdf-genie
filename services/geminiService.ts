@@ -44,6 +44,35 @@ const cleanMermaidString = (text: string): string => {
     .trim();
 };
 
+export const getDocumentStructure = async (file: FileData): Promise<string[]> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: {
+        parts: [
+          getPdfPart(file),
+          { text: "Analyse ce document et liste les titres des principaux chapitres ou sections (Maximum 8 à 10 sections principales). Retourne juste une liste de chaînes de caractères." }
+        ]
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        }
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(cleanJsonString(response.text)) as string[];
+    }
+    return [];
+  } catch (error) {
+    console.error("Structure Gen Error:", error);
+    return [];
+  }
+};
+
 export const generateStudyGuide = async (file: FileData): Promise<StudyGuideSection[]> => {
   try {
     const response = await ai.models.generateContent({
@@ -127,6 +156,18 @@ export const generateHighlights = async (file: FileData, length: SummaryLength =
         ? `Aji tankou yon pwofesè. Bay 5 konsèp kle ak definisyon yo nan yon tablo.`
         : `Extrais 5 à 7 concepts fondamentaux avec leur définition courte basée sur le texte. Format Table Markdown.`;
       sysInstruction = "Tu es un professeur pédagogique." + langInstruction;
+
+  } else if (length === 'APPLICATIONS') {
+      promptText = lang === 'ht'
+        ? `Idantifye aplikasyon pratik ak relasyon nan dokiman sa a.
+1. **Relasyon Kle (Koz → Efè):** Ki aksyon ki mennen nan ki rezilta? Fè yon lis.
+2. **Aplikasyon Konkrè:** Ki jan nou ka itilize enfòmasyon sa yo nan lavi reyèl oswa nan travay?
+3. **Kesyon Refleksyon:** 2 kesyon pou ede lektè a aplike sa li aprann.`
+        : `Identifie les relations de cause à effet et les applications pratiques du document. Structure la réponse ainsi :
+1. **Relations Clés (Cause → Effet) :** Liste les liens logiques majeurs (ex: Si X alors Y).
+2. **Applications Concrètes :** Comment utiliser ces informations concrètement dans un contexte professionnel ou personnel ?
+3. **Mise en Pratique :** Suggère 2 questions ou exercices pour appliquer ces connaissances.`;
+      sysInstruction = "Tu es un consultant en stratégie opérationnelle axé sur l'action et le résultat." + langInstruction;
 
   } else {
     // Default / Medium / Long
@@ -214,14 +255,24 @@ export const generateKeyQuotes = async (file: FileData): Promise<Quote[]> => {
   }
 };
 
-export const generateQuiz = async (file: FileData, numQuestions: number = 5): Promise<QuizQuestion[]> => {
+export const generateQuiz = async (
+  file: FileData, 
+  numQuestions: number = 5,
+  focusTopics: string[] = []
+): Promise<QuizQuestion[]> => {
   try {
+    let prompt = `Crée un quiz de ${numQuestions} questions à choix multiples basé sur ce document.`;
+    
+    if (focusTopics.length > 0) {
+      prompt += `\n\nIMPORTANT: Focalise les questions EXCLUSIVEMENT sur les chapitres/sujets suivants : ${focusTopics.join(", ")}.`;
+    }
+
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
         parts: [
           getPdfPart(file),
-          { text: `Crée un quiz de ${numQuestions} questions à choix multiples basé sur ce document.` }
+          { text: prompt }
         ]
       },
       config: {

@@ -155,21 +155,54 @@ export const StudyGuide: React.FC<{ file: FileData; isPremium?: boolean; onShowU
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-slate-900">
-        <div id="markdown-content" className="max-w-4xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50 dark:bg-slate-900">
+        <div id="markdown-content" className="max-w-4xl mx-auto space-y-8">
           {sections.length === 0 ? (
              <p className="text-center text-slate-500 dark:text-slate-400 italic">Aucun contenu généré.</p>
           ) : (
             getSortedSections().map((section, idx) => (
               <section 
                 key={idx} 
-                className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md"
+                className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md"
               >
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 pb-2 border-b border-slate-100 dark:border-slate-700">
+                <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-6 pb-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2">
+                  <span className="text-indigo-200 dark:text-indigo-800 select-none">#</span>
                   {section.title}
                 </h2>
-                <div className="prose prose-slate dark:prose-invert prose-headings:text-indigo-900 dark:prose-headings:text-indigo-300 max-w-none">
-                  <ReactMarkdown>{section.content}</ReactMarkdown>
+                <div className="text-slate-700 dark:text-slate-300">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({node, ...props}) => <h1 className="text-xl font-bold text-slate-900 dark:text-white mt-8 mb-4" {...props} />,
+                      h2: ({node, ...props}) => <h2 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mt-6 mb-3" {...props} />,
+                      h3: ({node, ...props}) => <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200 mt-5 mb-2 uppercase tracking-wide opacity-80" {...props} />,
+                      
+                      p: ({node, ...props}) => <p className="leading-8 mb-5 text-base md:text-lg font-normal text-slate-700 dark:text-slate-300" {...props} />,
+                      
+                      ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 mb-5 space-y-2 marker:text-indigo-500 dark:marker:text-indigo-400" {...props} />,
+                      ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 mb-5 space-y-2 marker:text-indigo-500 dark:marker:text-indigo-400 font-medium" {...props} />,
+                      li: ({node, ...props}) => <li className="pl-2 leading-8 text-base md:text-lg" {...props} />,
+                      
+                      strong: ({node, ...props}) => <strong className="font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-700 px-1 rounded" {...props} />,
+                      blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-indigo-300 dark:border-indigo-700 pl-5 py-2 italic my-6 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 rounded-r-lg" {...props} />,
+                      
+                      code: ({node, inline, className, children, ...props}: any) => {
+                         return inline 
+                           ? <code className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-sm font-mono text-pink-600 dark:text-pink-400 border border-slate-200 dark:border-slate-600" {...props}>{children}</code>
+                           : <div className="overflow-x-auto my-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 shadow-sm"><pre className="p-5 text-slate-100 text-sm font-mono leading-relaxed overflow-x-auto"><code>{children}</code></pre></div>
+                      },
+
+                      table: ({node, ...props}) => (
+                        <div className="overflow-x-auto my-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-900">
+                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700" {...props} />
+                        </div>
+                      ),
+                      thead: ({node, ...props}) => <thead className="bg-slate-50 dark:bg-slate-800" {...props} />,
+                      tbody: ({node, ...props}) => <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700" {...props} />,
+                      tr: ({node, ...props}) => <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" {...props} />,
+                      th: ({node, ...props}) => <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" {...props} />,
+                      td: ({node, ...props}) => <td className="px-6 py-4 whitespace-normal text-sm text-slate-700 dark:text-slate-300 leading-relaxed align-top" {...props} />
+                    }}
+                  >{section.content}</ReactMarkdown>
                 </div>
               </section>
             ))

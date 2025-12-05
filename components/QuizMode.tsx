@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { CircleCheck, CircleX, CircleAlert, RefreshCw, ChevronRight, GraduationCap, CirclePlay, Filter, Check, X, List, Lock } from 'lucide-react';
-import { generateQuiz } from '../services/geminiService';
+import React, { useState, useEffect } from 'react';
+import { CircleCheck, CircleX, CircleAlert, RefreshCw, ChevronRight, GraduationCap, CirclePlay, Filter, Check, X, List, Lock, Layers, BookOpen, Loader2 } from 'lucide-react';
+import { generateQuiz, getDocumentStructure } from '../services/geminiService';
 import { FileData, QuizQuestion } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -31,6 +31,29 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file, isPremium = false, onS
   // Setup State
   const [isSetup, setIsSetup] = useState(true);
   const [numQuestions, setNumQuestions] = useState(5);
+  
+  // Section Selection State
+  const [availableSections, setAvailableSections] = useState<string[]>([]);
+  const [selectedSections, setSelectedSections] = useState<string[]>([]);
+  const [isLoadingSections, setIsLoadingSections] = useState(false);
+
+  // Fetch document structure when entering Quiz Mode
+  useEffect(() => {
+    if (isSetup && availableSections.length === 0) {
+      const fetchStructure = async () => {
+        setIsLoadingSections(true);
+        try {
+          const sections = await getDocumentStructure(file);
+          setAvailableSections(sections);
+        } catch (e) {
+          console.error("Failed to load sections", e);
+        } finally {
+          setIsLoadingSections(false);
+        }
+      };
+      fetchStructure();
+    }
+  }, [file, isSetup]);
 
   const loadQuiz = async () => {
     setLoading(true);
@@ -41,7 +64,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file, isPremium = false, onS
     setUserAnswers([]);
     setFilter('ALL');
     try {
-      const data = await generateQuiz(file, numQuestions);
+      const data = await generateQuiz(file, numQuestions, selectedSections);
       setQuestions(data);
       // Initialize empty answers array
       setUserAnswers(new Array(data.length).fill(null));
@@ -62,6 +85,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file, isPremium = false, onS
     setShowResults(false);
     setQuestions([]);
     setUserAnswers([]);
+    // Note: We keep availableSections so we don't need to refetch them
   };
 
   const handleOptionSelect = (index: number) => {
@@ -100,53 +124,134 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file, isPremium = false, onS
     } else {
         setNumQuestions(count);
     }
-  }
+  };
+
+  const toggleSection = (section: string) => {
+    if (selectedSections.includes(section)) {
+      setSelectedSections(selectedSections.filter(s => s !== section));
+    } else {
+      setSelectedSections([...selectedSections, section]);
+    }
+  };
+
+  const toggleAllSections = () => {
+    if (selectedSections.length === availableSections.length) {
+      setSelectedSections([]);
+    } else {
+      setSelectedSections([...availableSections]);
+    }
+  };
 
   // 1. SETUP SCREEN
   if (isSetup) {
     return (
-      <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto p-6 animate-in fade-in duration-500">
-        <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 w-full text-center transition-colors">
+      <div className="flex flex-col items-center justify-start h-full max-w-4xl mx-auto p-4 md:p-6 animate-in fade-in duration-500 overflow-y-auto">
+        <div className="w-full bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 text-center transition-colors">
           <div className="bg-orange-100 dark:bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
             <GraduationCap className="w-8 h-8 text-orange-600 dark:text-orange-400" aria-hidden="true" />
           </div>
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Configurer votre Quiz</h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-8">Choisissez le nombre de questions pour tester vos connaissances.</p>
+          <p className="text-slate-600 dark:text-slate-400 mb-8">Personnalisez votre test de connaissances.</p>
 
-          <div className="grid grid-cols-2 gap-4 mb-8" role="group" aria-label="Nombre de questions">
-            {[3, 5, 10, 15].map((count) => {
-              const isLocked = !isPremium && count > 5;
-              return (
-                <button
-                    key={count}
-                    onClick={() => handleCountSelection(count)}
-                    aria-pressed={numQuestions === count}
-                    className={`
-                    relative p-4 rounded-xl border-2 font-semibold text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900
-                    ${numQuestions === count 
-                        ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' 
-                        : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 text-slate-600 dark:text-slate-400'}
-                    ${isLocked ? 'opacity-60 cursor-pointer bg-slate-50 dark:bg-slate-800' : ''}
-                    `}
-                >
-                    {count} Questions
-                    {isLocked && (
-                        <div className="absolute top-2 right-2 text-slate-400">
-                            <Lock className="w-4 h-4" />
-                        </div>
-                    )}
-                </button>
-              );
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+              {/* Configuration: Nombre de questions */}
+              <div>
+                  <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                      <List className="w-5 h-5 text-indigo-500" />
+                      1. Nombre de questions
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3" role="group" aria-label="Nombre de questions">
+                    {[3, 5, 10, 15].map((count) => {
+                      const isLocked = !isPremium && count > 5;
+                      return (
+                        <button
+                            key={count}
+                            onClick={() => handleCountSelection(count)}
+                            aria-pressed={numQuestions === count}
+                            className={`
+                            relative p-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900
+                            ${numQuestions === count 
+                                ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' 
+                                : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 text-slate-600 dark:text-slate-400'}
+                            ${isLocked ? 'opacity-60 cursor-pointer bg-slate-50 dark:bg-slate-800' : ''}
+                            `}
+                        >
+                            {count} Questions
+                            {isLocked && (
+                                <div className="absolute top-2 right-2 text-slate-400">
+                                    <Lock className="w-3 h-3" />
+                                </div>
+                            )}
+                        </button>
+                      );
+                    })}
+                  </div>
+              </div>
+
+              {/* Configuration: Chapitres */}
+              <div>
+                  <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2 justify-between">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-indigo-500" />
+                        2. Chapitres / Sujets
+                      </div>
+                      {availableSections.length > 0 && (
+                          <button 
+                             onClick={toggleAllSections}
+                             className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                          >
+                             {selectedSections.length === availableSections.length ? 'Désélectionner tout' : 'Tout sélectionner'}
+                          </button>
+                      )}
+                  </h3>
+                  
+                  {isLoadingSections ? (
+                      <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-slate-500 text-sm">
+                          <Loader2 className="w-6 h-6 animate-spin mb-2 text-indigo-400" />
+                          <span>Analyse de la structure...</span>
+                      </div>
+                  ) : availableSections.length === 0 ? (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm">
+                          Structure automatique non disponible. Le quiz portera sur l'ensemble du document.
+                      </div>
+                  ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                          {availableSections.map((section, idx) => {
+                              const isSelected = selectedSections.includes(section);
+                              return (
+                                  <button
+                                      key={idx}
+                                      onClick={() => toggleSection(section)}
+                                      className={`w-full text-left p-3 rounded-lg border text-sm transition-all flex items-start gap-3
+                                          ${isSelected 
+                                              ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-100' 
+                                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-600'}
+                                      `}
+                                  >
+                                      <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-500'}`}>
+                                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                                      </div>
+                                      <span className="line-clamp-2">{section}</span>
+                                  </button>
+                              )
+                          })}
+                      </div>
+                  )}
+                  {availableSections.length > 0 && selectedSections.length === 0 && (
+                      <p className="text-xs text-slate-400 mt-2 italic">Si aucun sujet n'est sélectionné, le quiz couvrira tout le document.</p>
+                  )}
+              </div>
           </div>
 
-          <button
-            onClick={startQuiz}
-            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 focus:outline-none focus:ring-4 focus:ring-indigo-300"
-          >
-            <CirclePlay className="w-6 h-6" aria-hidden="true" />
-            Commencer le Quiz
-          </button>
+          <div className="mt-10 pt-6 border-t border-slate-100 dark:border-slate-700">
+            <button
+                onClick={startQuiz}
+                className="w-full md:w-auto px-12 bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 focus:outline-none focus:ring-4 focus:ring-indigo-300 mx-auto"
+            >
+                <CirclePlay className="w-6 h-6" aria-hidden="true" />
+                Lancer le Quiz
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -157,7 +262,12 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file, isPremium = false, onS
     return (
       <div className="flex flex-col items-center justify-center h-full p-12 text-slate-600 dark:text-slate-400 animate-pulse" role="status">
         <RefreshCw className="w-10 h-10 animate-spin mb-4 text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
-        <p>Génération de {numQuestions} questions en cours avec Gemini...</p>
+        <p className="text-lg font-medium">Génération de votre Quiz...</p>
+        <p className="text-sm mt-2 opacity-80">
+            {selectedSections.length > 0 
+                ? `Ciblage : ${selectedSections.length} chapitres sélectionnés` 
+                : "Analyse globale du document"}
+        </p>
       </div>
     );
   }
