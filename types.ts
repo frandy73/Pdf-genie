@@ -1,3 +1,4 @@
+
 export enum AppMode {
   UPLOAD = 'UPLOAD',
   DASHBOARD = 'DASHBOARD',
@@ -6,7 +7,9 @@ export enum AppMode {
   QUIZ = 'QUIZ',
   FLASHCARDS = 'FLASHCARDS',
   HIGHLIGHTS = 'HIGHLIGHTS',
-  FAQ = 'FAQ'
+  FAQ = 'FAQ',
+  METHODOLOGY = 'METHODOLOGY',
+  STRATEGIC = 'STRATEGIC'
 }
 
 export interface FileData {

@@ -63,21 +63,73 @@ export const generateStudyGuide = async (file: FileData): Promise<StudyGuideSect
   }
 };
 
-export type SummaryLength = 'SHORT' | 'MEDIUM' | 'LONG';
+export type SummaryLength = 'SHORT' | 'MEDIUM' | 'LONG' | 'ANALYST' | 'TEACHER' | 'EXAM' | 'APPLICATIONS';
 
 export const generateHighlights = async (file: FileData, length: SummaryLength = 'MEDIUM'): Promise<string> => {
-  let lengthInstruction = "";
-  switch (length) {
-    case 'SHORT':
-      lengthInstruction = "Un résumé très court et concis (maximum 3 phrases) qui va droit au but.";
-      break;
-    case 'LONG':
-      lengthInstruction = "Un résumé détaillé et approfondi en plusieurs paragraphes couvrant tous les aspects importants.";
-      break;
-    case 'MEDIUM':
-    default:
-      lengthInstruction = "Un paragraphe de résumé standard, équilibré et clair.";
-      break;
+  let promptText = "";
+  let sysInstruction = "Tu es un assistant analytique expert capable d'extraire l'essence d'un document complexe.";
+
+  if (length === 'ANALYST') {
+    promptText = `À partir du document ci-joint, agis comme un analyste et génère une section "HIGHLIGHTS" structurée, se concentrant uniquement sur les éléments suivants :
+
+1. **Thèse Principale :** Quel est le message central ou l'argument majeur que l'auteur veut transmettre ? (Max. 2 phrases).
+2. **Objectif du Document :** Quel est le but de ce texte (informer, convaincre, guider, etc.) et à qui s'adresse-t-il (public cible) ?
+3. **Conclusions Clés :** Quels sont les trois principaux points d'action ou résultats que l'on doit retenir à la fin de la lecture ?
+
+Formatte la sortie sous forme de liste à puce claire en Markdown.`;
+    sysInstruction = "Tu es un analyste expert, précis et structuré.";
+
+  } else if (length === 'TEACHER') {
+    promptText = `À partir du document ci-joint, agis comme un professeur préparant un guide d'étude.
+
+1. **Concepts Essentiels :** Extrais et liste les 5 à 7 concepts ou principes les plus fondamentaux (ex : Intégrité, Vision, Persévérance) mentionnés. Pour chacun, donne une **définition courte** basée *strictement* sur le texte.
+2. **Faits/Exemples Cruciaux :** Liste 3 à 5 faits, noms, ou exemples que l'auteur utilise pour appuyer sa thèse.
+
+Le résultat doit être une table Markdown avec deux colonnes : "Concept/Fait" et "Définition/Description".`;
+    sysInstruction = "Tu es un professeur pédagogique qui structure l'information pour l'apprentissage.";
+
+  } else if (length === 'EXAM') {
+    promptText = `À partir du document ci-joint, génère un ensemble de matériel de révision :
+
+**PARTIE A : Flashcards (Terme/Définition)**
+Crée 5 paires "Recto/Verso" basées sur les définitions les plus importantes du texte.
+Format souhaité par carte :
+* **Recto (Terme) :** [Mot-clé]
+* **Verso (Définition) :** [Définition complète extraite ou synthétisée du texte]
+
+**PARTIE B : Questions à Choix Multiples (QCM)**
+Génère 3 questions à choix multiples (QCM) basées sur des faits précis du document. Pour chaque question :
+* Fournis la **Question**.
+* Indique la **Bonne Réponse**.
+* Génère **trois distracteurs** qui sont plausibles mais incorrects selon le texte.
+
+Formatte le résultat en Markdown clair avec des titres de section (##).`;
+    sysInstruction = "Tu es un examinateur expert qui crée du matériel de révision précis.";
+
+  } else if (length === 'APPLICATIONS') {
+    promptText = `À partir du document ci-joint, analyse les relations et les applications pratiques du contenu :
+
+1. **Relations Clés :** Identifie un lien de cause à effet crucial (ex : "Comment la Vision Mène-t-elle à la Discipline ?"). Décris cette relation en une courte phrase.
+2. **Application Pratique :** Formule une question d'application concrète : "Comment puis-je utiliser le concept de [INSÉRER UN CONCEPT CLÉ DU TEXTE] dans une situation de travail réelle ?"
+
+Le résultat doit être directement utilisable comme sujet de discussion ou exercice de réflexion pour l'utilisateur. Formatte en Markdown propre.`;
+    sysInstruction = "Tu es un coach professionnel axé sur la mise en pratique des connaissances.";
+
+  } else {
+    let lengthInstruction = "";
+    switch (length) {
+      case 'SHORT':
+        lengthInstruction = "Un résumé très court et concis (maximum 3 phrases) qui va droit au but.";
+        break;
+      case 'LONG':
+        lengthInstruction = "Un résumé détaillé et approfondi en plusieurs paragraphes couvrant tous les aspects importants.";
+        break;
+      case 'MEDIUM':
+      default:
+        lengthInstruction = "Un paragraphe de résumé standard, équilibré et clair.";
+        break;
+    }
+    promptText = `Analyses ce document et fournis une synthèse structurée :\n\n## 📝 Résumé Exécutif\n${lengthInstruction}\n\n## ✨ Highlights (Points Clés)\nUne liste des 7 à 10 points les plus cruciaux et importants du document.\n\nFormate le tout en Markdown propre.`;
   }
 
   try {
@@ -86,11 +138,11 @@ export const generateHighlights = async (file: FileData, length: SummaryLength =
       contents: {
         parts: [
           getPdfPart(file),
-          { text: `Analyses ce document et fournis une synthèse structurée :\n\n## 📝 Résumé Exécutif\n${lengthInstruction}\n\n## ✨ Highlights (Points Clés)\nUne liste des 7 à 10 points les plus cruciaux et importants du document.\n\nFormate le tout en Markdown propre.` }
+          { text: promptText }
         ]
       },
       config: {
-        systemInstruction: "Tu es un assistant analytique expert capable d'extraire l'essence d'un document complexe."
+        systemInstruction: sysInstruction
       }
     });
     return response.text || "Impossible d'extraire les points clés.";

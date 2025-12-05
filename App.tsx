@@ -7,10 +7,11 @@ import { FlashcardMode } from './components/FlashcardMode';
 import { StudyGuide } from './components/StudyGuide';
 import { Highlights } from './components/Highlights';
 import { FAQMode } from './components/FAQMode';
+import { MethodologyGuide } from './components/MethodologyGuide';
 import { UpgradeModal } from './components/UpgradeModal';
 import { generateFileDescription } from './services/geminiService';
 import { FileData, AppMode } from './types';
-import { MessageSquare, BookOpen, BrainCircuit, GraduationCap, Sparkles, LogOut, LayoutDashboard, CircleHelp, FileText, Loader2, Moon, Sun, Crown, Lock } from 'lucide-react';
+import { MessageSquare, BookOpen, BrainCircuit, GraduationCap, Sparkles, LogOut, LayoutDashboard, CircleHelp, FileText, Loader2, Moon, Sun, Crown, Lock, Compass, Bot, ArrowRight, Target } from 'lucide-react';
 
 const App: React.FC = () => {
   const [file, setFile] = useState<FileData | null>(null);
@@ -108,9 +109,13 @@ const App: React.FC = () => {
       case AppMode.GUIDE:
         return <StudyGuide {...commonProps} />;
       case AppMode.HIGHLIGHTS:
-        return <Highlights {...commonProps} />;
+        return <Highlights {...commonProps} key="highlights" />;
+      case AppMode.STRATEGIC:
+        return <Highlights {...commonProps} initialLength="ANALYST" key="strategic" />;
       case AppMode.FAQ:
         return <FAQMode file={file} />;
+      case AppMode.METHODOLOGY:
+        return <MethodologyGuide />;
       case AppMode.DASHBOARD:
       default:
         return (
@@ -140,17 +145,61 @@ const App: React.FC = () => {
             </div>
 
             {/* Quick Actions Cards */}
+            {/* CARD 1: Chat Interface Preview (Replaces old Guide Card) */}
+            <div 
+              onClick={() => setMode(AppMode.CHAT)}
+              onKeyDown={(e) => handleCardKeyDown(e, AppMode.CHAT)}
+              role="button"
+              tabIndex={0}
+              className="col-span-1 md:col-span-2 relative bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group overflow-hidden flex flex-col focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+            >
+              {/* Header Mockup */}
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex justify-between items-center">
+                 <div className="flex items-center gap-2">
+                    <div className="bg-indigo-100 dark:bg-indigo-900/30 p-1.5 rounded-lg">
+                        <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">Assistant IA</span>
+                 </div>
+                 <span className="text-xs text-slate-400">En ligne</span>
+              </div>
+
+              {/* Chat Body Mockup */}
+              <div className="flex-1 p-4 bg-white dark:bg-slate-800 relative">
+                 <div className="flex items-start gap-3 mb-3">
+                     <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                         <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                     </div>
+                     <div className="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-2xl rounded-tl-none text-sm text-slate-600 dark:text-slate-300">
+                         <p>Bonjour ! J'ai analysé <strong>{file.name}</strong>.</p>
+                         <p className="mt-1">Je suis prêt à répondre à vos questions ou à générer du contenu.</p>
+                     </div>
+                 </div>
+              </div>
+
+              {/* Footer / CTA */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/10 transition-colors">
+                 <span className="text-sm text-slate-500 dark:text-slate-400 pl-2">Posez une question...</span>
+                 <span className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-transform group-hover:scale-105">
+                    Commencer <ArrowRight className="w-3 h-3" />
+                 </span>
+              </div>
+            </div>
+
+            {/* CARD 2: Guide d'étude (Moved here) */}
             <div 
               onClick={() => setMode(AppMode.GUIDE)}
               onKeyDown={(e) => handleCardKeyDown(e, AppMode.GUIDE)}
               role="button"
               tabIndex={0}
-              className="relative bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none cursor-pointer hover:scale-[1.02] transition-transform focus:outline-none focus:ring-4 focus:ring-indigo-300 overflow-hidden"
+              className="relative bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
             >
-              <BookOpen className="w-8 h-8 mb-4 opacity-80" aria-hidden="true" />
-              <h3 className="text-xl font-bold mb-1">Guide d'étude</h3>
-              <p className="text-indigo-100 text-sm">Générer un résumé structuré</p>
-              {!isPremium && <div className="absolute top-4 right-4 bg-white/20 p-1.5 rounded-full backdrop-blur-sm"><Lock className="w-4 h-4 text-white" /></div>}
+              <div className="bg-purple-100 dark:bg-purple-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                 <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Guide d'étude</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Générer un résumé structuré</p>
+              {!isPremium && <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-600"><Lock className="w-5 h-5" /></div>}
             </div>
 
             <div 
@@ -183,25 +232,6 @@ const App: React.FC = () => {
             </div>
 
             <div 
-              onClick={() => setMode(AppMode.CHAT)}
-              onKeyDown={(e) => handleCardKeyDown(e, AppMode.CHAT)}
-              role="button"
-              tabIndex={0}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group col-span-1 md:col-span-2 lg:col-span-2 focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Chat avec le document</h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">Posez des questions précises ou demandez des analyses approfondies.</p>
-                  <span className="text-indigo-600 dark:text-indigo-400 font-medium text-sm">Commencer la discussion &rarr;</span>
-                </div>
-                <div className="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-full">
-                  <MessageSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
-                </div>
-              </div>
-            </div>
-
-            <div 
                onClick={() => setMode(AppMode.HIGHLIGHTS)}
                onKeyDown={(e) => handleCardKeyDown(e, AppMode.HIGHLIGHTS)}
                role="button"
@@ -228,6 +258,20 @@ const App: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Questions & Réponses</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm">FAQ générée automatiquement</p>
+            </div>
+            
+            <div 
+              onClick={() => setMode(AppMode.METHODOLOGY)}
+              onKeyDown={(e) => handleCardKeyDown(e, AppMode.METHODOLOGY)}
+              role="button"
+              tabIndex={0}
+              className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
+            >
+              <div className="bg-slate-100 dark:bg-slate-700 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-slate-200 dark:group-hover:bg-slate-600 transition-colors">
+                 <Compass className="w-6 h-6 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Méthodologie</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Guide pédagogique d'étude</p>
             </div>
           </div>
         );
@@ -283,11 +327,14 @@ const App: React.FC = () => {
           <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Études</div>
           <SidebarItem activeMode={AppMode.GUIDE} icon={BookOpen} label="Guide d'étude" />
           <SidebarItem activeMode={AppMode.HIGHLIGHTS} icon={Sparkles} label="Highlights" />
+          <SidebarItem activeMode={AppMode.STRATEGIC} icon={Target} label="Analyse Stratégique" />
           <SidebarItem activeMode={AppMode.FAQ} icon={CircleHelp} label="Questions & Rép." />
           <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Pratique</div>
           <SidebarItem activeMode={AppMode.CHAT} icon={MessageSquare} label="Discussion" />
           <SidebarItem activeMode={AppMode.QUIZ} icon={GraduationCap} label="Quiz" />
           <SidebarItem activeMode={AppMode.FLASHCARDS} icon={BrainCircuit} label="Flashcards" />
+          <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Ressources</div>
+          <SidebarItem activeMode={AppMode.METHODOLOGY} icon={Compass} label="Méthodologie" />
         </nav>
 
         {/* PREMIUM BANNER */}
