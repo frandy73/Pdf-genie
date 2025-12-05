@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CircleCheck, CircleX, CircleAlert, RefreshCw, ChevronRight, GraduationCap, CirclePlay, Filter, Check, X, List, Lock, Layers, BookOpen, Loader2 } from 'lucide-react';
+import { CircleCheck, CircleX, CircleAlert, RefreshCw, ChevronRight, GraduationCap, CirclePlay, Filter, Check, X, List, Lock, Layers, Loader2 } from 'lucide-react';
 import { generateQuiz, getDocumentStructure } from '../services/geminiService';
 import { FileData, QuizQuestion } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -53,7 +53,7 @@ export const QuizMode: React.FC<QuizModeProps> = ({ file, isPremium = false, onS
       };
       fetchStructure();
     }
-  }, [file, isSetup]);
+  }, [file, isSetup, availableSections.length]);
 
   const loadQuiz = async () => {
     setLoading(true);
