@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { FileData, Flashcard, QuizQuestion, Message, QAPair, StudyGuideSection } from "../types";
+import { FileData, Flashcard, QuizQuestion, Message, QAPair, StudyGuideSection, Quote, Language } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -24,6 +25,23 @@ const cleanJsonString = (text: string): string => {
     cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
   return cleaned;
+};
+
+// Helper for cleaning Mermaid code
+const cleanMermaidString = (text: string): string => {
+  if (!text) return "";
+  
+  // Try to extract from code block if present
+  const match = text.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+
+  // Fallback cleanup for raw text or unclosed blocks
+  return text.trim()
+    .replace(/^```(?:mermaid)?\s*/, '')
+    .replace(/\s*```$/, '')
+    .trim();
 };
 
 export const generateStudyGuide = async (file: FileData): Promise<StudyGuideSection[]> => {
@@ -63,73 +81,59 @@ export const generateStudyGuide = async (file: FileData): Promise<StudyGuideSect
   }
 };
 
-export type SummaryLength = 'SHORT' | 'MEDIUM' | 'LONG' | 'ANALYST' | 'TEACHER' | 'EXAM' | 'APPLICATIONS';
+export type SummaryLength = 'SHORT' | 'MEDIUM' | 'LONG' | 'ANALYST' | 'TEACHER' | 'EXAM' | 'APPLICATIONS' | 'SIMPLE' | 'KEY_POINTS' | 'DESCRIPTIVE';
 
-export const generateHighlights = async (file: FileData, length: SummaryLength = 'MEDIUM'): Promise<string> => {
+export const generateHighlights = async (file: FileData, length: SummaryLength = 'MEDIUM', lang: Language = 'fr'): Promise<string> => {
   let promptText = "";
-  let sysInstruction = "Tu es un assistant analytique expert capable d'extraire l'essence d'un document complexe.";
+  let sysInstruction = "";
+  
+  const langInstruction = lang === 'ht' 
+    ? " REPONN TOUT AN KREYÒL AYISYEN SÈLMAN. Sèvi ak yon langaj klè ak natirèl." 
+    : " Réponds en Français.";
 
   if (length === 'ANALYST') {
-    promptText = `À partir du document ci-joint, agis comme un analyste et génère une section "HIGHLIGHTS" structurée, se concentrant uniquement sur les éléments suivants :
+    promptText = lang === 'ht' 
+      ? `Aji tankou yon analis estratejik. 
+1. **Tèz Prensipal:** Ki sa otè a vle di prensipalman? (Max 2 fraz).
+2. **Objektif:** Poukisa dokiman sa a ekri e pou ki moun?
+3. **Konklizyon Kle:** Bay 3 pwen enpòtan nou dwe kenbe.`
+      : `À partir du document ci-joint, agis comme un analyste et génère une section "HIGHLIGHTS" structurée :
+1. **Thèse Principale :** Quel est le message central ? (Max. 2 phrases).
+2. **Objectif du Document :** Quel est le but et le public cible ?
+3. **Conclusions Clés :** 3 points d'action ou résultats majeurs.`;
 
-1. **Thèse Principale :** Quel est le message central ou l'argument majeur que l'auteur veut transmettre ? (Max. 2 phrases).
-2. **Objectif du Document :** Quel est le but de ce texte (informer, convaincre, guider, etc.) et à qui s'adresse-t-il (public cible) ?
-3. **Conclusions Clés :** Quels sont les trois principaux points d'action ou résultats que l'on doit retenir à la fin de la lecture ?
+    sysInstruction = "Tu es un analyste expert, précis et structuré." + langInstruction;
 
-Formatte la sortie sous forme de liste à puce claire en Markdown.`;
-    sysInstruction = "Tu es un analyste expert, précis et structuré.";
+  } else if (length === 'SIMPLE') {
+    promptText = lang === 'ht'
+      ? `Fè yon rezime trè senp nan yon sèl paragraf pou yon timoun 12 an ka konprann.`
+      : `Fais un résumé très simple, en langage clair (vulgarisation), compréhensible par un collégien. Un seul paragraphe fluide.`;
+    sysInstruction = "Tu es un vulgarisateur qui simplifie les concepts complexes." + langInstruction;
+
+  } else if (length === 'KEY_POINTS') {
+    promptText = lang === 'ht'
+      ? `Bay lis 7 pwen ki pi enpòtan nan tèks la. Itilize 'Bullet points'.`
+      : `Liste les 7 à 10 points clés essentiels du document sous forme de liste à puces (Bullet points).`;
+    sysInstruction = "Tu es synthétique et vas droit au but." + langInstruction;
+
+  } else if (length === 'DESCRIPTIVE') {
+    promptText = lang === 'ht'
+      ? `Fè yon rezime deskriptif sou dokiman sa a. Dekri de kisa l ap pale an jeneral, ki jan li òganize, ak ki ton otè a itilize. Pa fè lis, fè paragraf ki byen ekri.`
+      : `Génère un résumé descriptif du document. Décris le sujet général, la structure (comment il est organisé) et l'approche de l'auteur. Utilise des paragraphes fluides, évite les listes à puces.`;
+    sysInstruction = "Tu es un bibliothécaire expert qui décrit le contenu des ouvrages." + langInstruction;
 
   } else if (length === 'TEACHER') {
-    promptText = `À partir du document ci-joint, agis comme un professeur préparant un guide d'étude.
-
-1. **Concepts Essentiels :** Extrais et liste les 5 à 7 concepts ou principes les plus fondamentaux (ex : Intégrité, Vision, Persévérance) mentionnés. Pour chacun, donne une **définition courte** basée *strictement* sur le texte.
-2. **Faits/Exemples Cruciaux :** Liste 3 à 5 faits, noms, ou exemples que l'auteur utilise pour appuyer sa thèse.
-
-Le résultat doit être une table Markdown avec deux colonnes : "Concept/Fait" et "Définition/Description".`;
-    sysInstruction = "Tu es un professeur pédagogique qui structure l'information pour l'apprentissage.";
-
-  } else if (length === 'EXAM') {
-    promptText = `À partir du document ci-joint, génère un ensemble de matériel de révision :
-
-**PARTIE A : Flashcards (Terme/Définition)**
-Crée 5 paires "Recto/Verso" basées sur les définitions les plus importantes du texte.
-Format souhaité par carte :
-* **Recto (Terme) :** [Mot-clé]
-* **Verso (Définition) :** [Définition complète extraite ou synthétisée du texte]
-
-**PARTIE B : Questions à Choix Multiples (QCM)**
-Génère 3 questions à choix multiples (QCM) basées sur des faits précis du document. Pour chaque question :
-* Fournis la **Question**.
-* Indique la **Bonne Réponse**.
-* Génère **trois distracteurs** qui sont plausibles mais incorrects selon le texte.
-
-Formatte le résultat en Markdown clair avec des titres de section (##).`;
-    sysInstruction = "Tu es un examinateur expert qui crée du matériel de révision précis.";
-
-  } else if (length === 'APPLICATIONS') {
-    promptText = `À partir du document ci-joint, analyse les relations et les applications pratiques du contenu :
-
-1. **Relations Clés :** Identifie un lien de cause à effet crucial (ex : "Comment la Vision Mène-t-elle à la Discipline ?"). Décris cette relation en une courte phrase.
-2. **Application Pratique :** Formule une question d'application concrète : "Comment puis-je utiliser le concept de [INSÉRER UN CONCEPT CLÉ DU TEXTE] dans une situation de travail réelle ?"
-
-Le résultat doit être directement utilisable comme sujet de discussion ou exercice de réflexion pour l'utilisateur. Formatte en Markdown propre.`;
-    sysInstruction = "Tu es un coach professionnel axé sur la mise en pratique des connaissances.";
+      promptText = lang === 'ht' 
+        ? `Aji tankou yon pwofesè. Bay 5 konsèp kle ak definisyon yo nan yon tablo.`
+        : `Extrais 5 à 7 concepts fondamentaux avec leur définition courte basée sur le texte. Format Table Markdown.`;
+      sysInstruction = "Tu es un professeur pédagogique." + langInstruction;
 
   } else {
-    let lengthInstruction = "";
-    switch (length) {
-      case 'SHORT':
-        lengthInstruction = "Un résumé très court et concis (maximum 3 phrases) qui va droit au but.";
-        break;
-      case 'LONG':
-        lengthInstruction = "Un résumé détaillé et approfondi en plusieurs paragraphes couvrant tous les aspects importants.";
-        break;
-      case 'MEDIUM':
-      default:
-        lengthInstruction = "Un paragraphe de résumé standard, équilibré et clair.";
-        break;
-    }
-    promptText = `Analyses ce document et fournis une synthèse structurée :\n\n## 📝 Résumé Exécutif\n${lengthInstruction}\n\n## ✨ Highlights (Points Clés)\nUne liste des 7 à 10 points les plus cruciaux et importants du document.\n\nFormate le tout en Markdown propre.`;
+    // Default / Medium / Long
+    promptText = lang === 'ht'
+      ? `Fè yon rezime konplè sou dokiman sa a. Divize l an Tit ak Paragraf.`
+      : `Analyses ce document et fournis une synthèse structurée.`;
+    sysInstruction = "Tu es un assistant expert." + langInstruction;
   }
 
   try {
@@ -138,7 +142,7 @@ Le résultat doit être directement utilisable comme sujet de discussion ou exer
       contents: {
         parts: [
           getPdfPart(file),
-          { text: promptText }
+          { text: promptText + " Formatte le résultat en Markdown propre." }
         ]
       },
       config: {
@@ -148,6 +152,64 @@ Le résultat doit être directement utilisable comme sujet de discussion ou exer
     return response.text || "Impossible d'extraire les points clés.";
   } catch (error) {
     console.error("Highlights Error:", error);
+    throw error;
+  }
+};
+
+export const generateMindmap = async (file: FileData): Promise<string> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: {
+        parts: [
+          getPdfPart(file),
+          { text: "Génère un diagramme Mermaid 'graph TD' pour ce document. \n\nCRITÈRES DE LISIBILITÉ :\n1. Utilise des labels TRÈS COURTS (max 3-5 mots par nœud).\n2. Évite les phrases complètes, utilise des mots-clés.\n3. Structure hiérarchique claire.\n\nRÈGLES TECHNIQUES :\n1. Commence par 'graph TD'.\n2. PAS de 'classDef' avant le graphe.\n3. PAS de styles CSS complexes, je gère le style côté client." }
+        ]
+      },
+      config: {
+        systemInstruction: "Tu es un expert en synthèse visuelle. Tu crées des Mindmaps Mermaid claires, lisibles et concises.",
+      }
+    });
+    return cleanMermaidString(response.text || "");
+  } catch (error) {
+    console.error("Mindmap Gen Error:", error);
+    throw error;
+  }
+};
+
+export const generateKeyQuotes = async (file: FileData): Promise<Quote[]> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: {
+        parts: [
+          getPdfPart(file),
+          { text: "Extrais 5 à 8 citations textuelles marquantes (verbatim) de ce document. Pour chaque citation, fournis le contexte (de quoi ça parle) et si possible l'auteur ou la section." }
+        ]
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              text: { type: Type.STRING, description: "La citation exacte entre guillemets" },
+              author: { type: Type.STRING, description: "Auteur ou Interlocuteur" },
+              context: { type: Type.STRING, description: "Le contexte ou le sujet de la citation" }
+            },
+            required: ["text", "context"]
+          }
+        }
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(cleanJsonString(response.text)) as Quote[];
+    }
+    return [];
+  } catch (error) {
+    console.error("Quotes Gen Error:", error);
     throw error;
   }
 };

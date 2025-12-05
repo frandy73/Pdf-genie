@@ -9,7 +9,9 @@ export enum AppMode {
   HIGHLIGHTS = 'HIGHLIGHTS',
   FAQ = 'FAQ',
   METHODOLOGY = 'METHODOLOGY',
-  STRATEGIC = 'STRATEGIC'
+  STRATEGIC = 'STRATEGIC',
+  MINDMAP = 'MINDMAP',
+  QUOTES = 'QUOTES'
 }
 
 export interface FileData {
@@ -45,3 +47,12 @@ export interface StudyGuideSection {
   title: string;
   content: string;
 }
+
+export interface Quote {
+  text: string;
+  author?: string;
+  context: string;
+  page?: string;
+}
+
+export type Language = 'fr' | 'ht'; // Français ou Créole Haïtien

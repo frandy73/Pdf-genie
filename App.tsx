@@ -9,9 +9,11 @@ import { Highlights } from './components/Highlights';
 import { FAQMode } from './components/FAQMode';
 import { MethodologyGuide } from './components/MethodologyGuide';
 import { UpgradeModal } from './components/UpgradeModal';
+import { MindmapMode } from './components/MindmapMode';
+import { KeyQuotesMode } from './components/KeyQuotesMode';
 import { generateFileDescription } from './services/geminiService';
 import { FileData, AppMode } from './types';
-import { MessageSquare, BookOpen, BrainCircuit, GraduationCap, Sparkles, LogOut, LayoutDashboard, CircleHelp, FileText, Loader2, Moon, Sun, Crown, Lock, Compass, Bot, ArrowRight, Target } from 'lucide-react';
+import { MessageSquare, BookOpen, BrainCircuit, GraduationCap, Sparkles, LogOut, LayoutDashboard, CircleHelp, FileText, Loader2, Moon, Sun, Crown, Lock, Compass, Bot, ArrowRight, Target, Network, Quote } from 'lucide-react';
 
 const App: React.FC = () => {
   const [file, setFile] = useState<FileData | null>(null);
@@ -112,6 +114,10 @@ const App: React.FC = () => {
         return <Highlights {...commonProps} key="highlights" />;
       case AppMode.STRATEGIC:
         return <Highlights {...commonProps} initialLength="ANALYST" key="strategic" />;
+      case AppMode.MINDMAP:
+        return <MindmapMode file={file} />;
+      case AppMode.QUOTES:
+        return <KeyQuotesMode file={file} />;
       case AppMode.FAQ:
         return <FAQMode file={file} />;
       case AppMode.METHODOLOGY:
@@ -202,36 +208,22 @@ const App: React.FC = () => {
               {!isPremium && <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-600"><Lock className="w-5 h-5" /></div>}
             </div>
 
+            {/* Mindmap Card */}
             <div 
-              onClick={() => setMode(AppMode.QUIZ)}
-              onKeyDown={(e) => handleCardKeyDown(e, AppMode.QUIZ)}
+              onClick={() => setMode(AppMode.MINDMAP)}
+              onKeyDown={(e) => handleCardKeyDown(e, AppMode.MINDMAP)}
               role="button"
               tabIndex={0}
               className="relative bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
             >
-              <div className="bg-orange-100 dark:bg-orange-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-200 dark:group-hover:bg-orange-900/50 transition-colors">
-                 <GraduationCap className="w-6 h-6 text-orange-600 dark:text-orange-400" aria-hidden="true" />
+              <div className="bg-pink-100 dark:bg-pink-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-pink-200 dark:group-hover:bg-pink-900/50 transition-colors">
+                 <Network className="w-6 h-6 text-pink-600 dark:text-pink-400" aria-hidden="true" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Quiz</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">Testez vos connaissances</p>
-              {!isPremium && <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-600"><Lock className="w-5 h-5" /></div>}
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Mindmap</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Carte mentale visuelle</p>
             </div>
 
-            <div 
-              onClick={() => setMode(AppMode.FLASHCARDS)}
-              onKeyDown={(e) => handleCardKeyDown(e, AppMode.FLASHCARDS)}
-              role="button"
-              tabIndex={0}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
-            >
-              <div className="bg-blue-100 dark:bg-blue-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                 <BrainCircuit className="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Flashcards</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">Mémorisation rapide</p>
-            </div>
-
-            <div 
+             <div 
                onClick={() => setMode(AppMode.HIGHLIGHTS)}
                onKeyDown={(e) => handleCardKeyDown(e, AppMode.HIGHLIGHTS)}
                role="button"
@@ -241,23 +233,24 @@ const App: React.FC = () => {
               <div className="bg-yellow-100 dark:bg-yellow-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-900/50 transition-colors">
                  <Sparkles className="w-6 h-6 text-yellow-600 dark:text-yellow-400" aria-hidden="true" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Highlights</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">Résumé et points essentiels</p>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Résumé</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Synthèse et points clés (FR/HT)</p>
               {!isPremium && <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-600"><Lock className="w-5 h-5" /></div>}
             </div>
 
+            {/* Quotes Card */}
              <div 
-               onClick={() => setMode(AppMode.FAQ)}
-               onKeyDown={(e) => handleCardKeyDown(e, AppMode.FAQ)}
+               onClick={() => setMode(AppMode.QUOTES)}
+               onKeyDown={(e) => handleCardKeyDown(e, AppMode.QUOTES)}
                role="button"
                tabIndex={0}
                className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900"
             >
-              <div className="bg-emerald-100 dark:bg-emerald-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors">
-                 <CircleHelp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              <div className="bg-teal-100 dark:bg-teal-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-teal-200 dark:group-hover:bg-teal-900/50 transition-colors">
+                 <Quote className="w-6 h-6 text-teal-600 dark:text-teal-400" aria-hidden="true" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Questions & Réponses</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">FAQ générée automatiquement</p>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Citations</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Passages importants</p>
             </div>
             
             <div 
@@ -324,16 +317,20 @@ const App: React.FC = () => {
         
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <SidebarItem activeMode={AppMode.DASHBOARD} icon={LayoutDashboard} label="Tableau de bord" />
-          <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Études</div>
-          <SidebarItem activeMode={AppMode.GUIDE} icon={BookOpen} label="Guide d'étude" />
-          <SidebarItem activeMode={AppMode.HIGHLIGHTS} icon={Sparkles} label="Highlights" />
+          <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Synthèse</div>
+          <SidebarItem activeMode={AppMode.HIGHLIGHTS} icon={Sparkles} label="Résumé" />
+          <SidebarItem activeMode={AppMode.MINDMAP} icon={Network} label="Mindmap" />
+          <SidebarItem activeMode={AppMode.QUOTES} icon={Quote} label="Citations Clés" />
           <SidebarItem activeMode={AppMode.STRATEGIC} icon={Target} label="Analyse Stratégique" />
-          <SidebarItem activeMode={AppMode.FAQ} icon={CircleHelp} label="Questions & Rép." />
+          
           <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Pratique</div>
           <SidebarItem activeMode={AppMode.CHAT} icon={MessageSquare} label="Discussion" />
           <SidebarItem activeMode={AppMode.QUIZ} icon={GraduationCap} label="Quiz" />
           <SidebarItem activeMode={AppMode.FLASHCARDS} icon={BrainCircuit} label="Flashcards" />
+          
           <div className="pt-4 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider pl-4">Ressources</div>
+          <SidebarItem activeMode={AppMode.GUIDE} icon={BookOpen} label="Guide d'étude" />
+          <SidebarItem activeMode={AppMode.FAQ} icon={CircleHelp} label="Questions & Rép." />
           <SidebarItem activeMode={AppMode.METHODOLOGY} icon={Compass} label="Méthodologie" />
         </nav>
 

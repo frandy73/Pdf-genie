@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { generateHighlights, SummaryLength } from '../services/geminiService';
-import { FileData } from '../types';
-import { Lightbulb, Loader2, RefreshCw, Copy, Check, AlignLeft, AlignCenter, AlignJustify, Volume2, Square, Lock, Briefcase, GraduationCap, FileQuestion, Zap } from 'lucide-react';
+import { FileData, Language } from '../types';
+import { Lightbulb, Loader2, RefreshCw, Copy, Check, AlignLeft, AlignCenter, AlignJustify, Volume2, Square, Lock, Briefcase, GraduationCap, FileQuestion, Zap, Target, Sparkles, Flag, FileText } from 'lucide-react';
 
 interface HighlightsProps {
     file: FileData;
@@ -16,6 +17,7 @@ export const Highlights: React.FC<HighlightsProps> = ({ file, isPremium = false,
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [summaryLength, setSummaryLength] = useState<SummaryLength>(initialLength);
+  const [language, setLanguage] = useState<Language>('fr'); // Default French
   
   // TTS State
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -30,11 +32,10 @@ export const Highlights: React.FC<HighlightsProps> = ({ file, isPremium = false,
 
   const fetchHighlights = async () => {
     setLoading(true);
-    // Stop any ongoing speech when regenerating
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
     try {
-      const text = await generateHighlights(file, summaryLength);
+      const text = await generateHighlights(file, summaryLength, language);
       setContent(text);
     } catch (e) {
       setContent("Erreur lors de la génération des points clés.");
@@ -45,7 +46,7 @@ export const Highlights: React.FC<HighlightsProps> = ({ file, isPremium = false,
 
   useEffect(() => {
     fetchHighlights();
-  }, [file, summaryLength]);
+  }, [file, summaryLength, language]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -59,7 +60,7 @@ export const Highlights: React.FC<HighlightsProps> = ({ file, isPremium = false,
       setIsSpeaking(false);
     } else {
       const utterance = new SpeechSynthesisUtterance(content);
-      utterance.lang = 'fr-FR'; // Set to French
+      utterance.lang = language === 'ht' ? 'ht' : 'fr-FR'; // Note: 'ht' TTS support varies by browser
       utterance.rate = 1.0;
       
       utterance.onend = () => setIsSpeaking(false);
@@ -81,10 +82,13 @@ export const Highlights: React.FC<HighlightsProps> = ({ file, isPremium = false,
   const getTitle = () => {
       switch(summaryLength) {
           case 'ANALYST': return 'Analyse Stratégique';
+          case 'SIMPLE': return 'Résumé Simple';
+          case 'DESCRIPTIVE': return 'Résumé Descriptif';
+          case 'KEY_POINTS': return 'Points Clés';
           case 'TEACHER': return 'Concepts & Définitions';
           case 'EXAM': return 'Matériel de Révision';
           case 'APPLICATIONS': return 'Relations & Applications';
-          default: return 'Highlights & Résumé';
+          default: return 'Résumé & Synthèse';
       }
   }
 
@@ -93,11 +97,7 @@ export const Highlights: React.FC<HighlightsProps> = ({ file, isPremium = false,
       <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 animate-in fade-in duration-500" role="status">
         <Loader2 className="w-10 h-10 animate-spin mb-4 text-yellow-500" aria-hidden="true" />
         <p className="font-medium">
-            {summaryLength === 'ANALYST' ? 'Analyse stratégique...' : 
-             summaryLength === 'TEACHER' ? 'Extraction des concepts clés...' : 
-             summaryLength === 'EXAM' ? 'Génération du matériel de révision...' :
-             summaryLength === 'APPLICATIONS' ? 'Analyse des applications pratiques...' :
-             'Analyse intelligente...'}
+             {language === 'ht' ? 'N ap travay sou rezime a...' : 'Génération du résumé...'}
         </p>
       </div>
     );
@@ -118,63 +118,65 @@ export const Highlights: React.FC<HighlightsProps> = ({ file, isPremium = false,
 
         {/* Controls */}
         <div className="flex flex-wrap justify-center xl:justify-end items-center gap-4">
+            
+            {/* Language Selector */}
+            <div className="flex bg-white dark:bg-slate-700 rounded-lg p-1 border border-slate-200 dark:border-slate-600 shadow-sm">
+                 <button 
+                   onClick={() => setLanguage('fr')}
+                   className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${language === 'fr' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                 >
+                    FR
+                 </button>
+                 <button 
+                   onClick={() => setLanguage('ht')}
+                   className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${language === 'ht' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                   title="Kreyòl Ayisyen"
+                 >
+                    HT
+                 </button>
+            </div>
+
             {/* Length Selector */}
             <div className="flex bg-white dark:bg-slate-700 rounded-lg p-1 border border-slate-200 dark:border-slate-600 shadow-sm overflow-x-auto max-w-full" role="group" aria-label="Type de résumé">
                 <button
-                    onClick={() => handleLengthChange('SHORT')}
-                    aria-pressed={summaryLength === 'SHORT'}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${summaryLength === 'SHORT' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
-                    title="Résumé court"
+                    onClick={() => handleLengthChange('SIMPLE')}
+                    aria-pressed={summaryLength === 'SIMPLE'}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${summaryLength === 'SIMPLE' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                    title="Résumé Simple"
                 >
-                    <AlignLeft className="w-3 h-3" /> Court
+                    <AlignLeft className="w-3 h-3" /> Simple
                 </button>
                 <button
-                    onClick={() => handleLengthChange('MEDIUM')}
-                    aria-pressed={summaryLength === 'MEDIUM'}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${summaryLength === 'MEDIUM' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
-                    title="Résumé moyen"
+                    onClick={() => handleLengthChange('DESCRIPTIVE')}
+                    aria-pressed={summaryLength === 'DESCRIPTIVE'}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${summaryLength === 'DESCRIPTIVE' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                    title="Résumé Descriptif"
                 >
-                    <AlignCenter className="w-3 h-3" /> Moyen
+                    <FileText className="w-3 h-3" /> Descriptif
                 </button>
                 <button
-                    onClick={() => handleLengthChange('LONG')}
-                    aria-pressed={summaryLength === 'LONG'}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${!isPremium ? 'opacity-60 cursor-pointer' : ''} ${summaryLength === 'LONG' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
-                    title="Résumé détaillé"
+                    onClick={() => handleLengthChange('KEY_POINTS')}
+                    aria-pressed={summaryLength === 'KEY_POINTS'}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${summaryLength === 'KEY_POINTS' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                    title="Points Clés"
                 >
-                    {!isPremium ? <Lock className="w-3 h-3" /> : <AlignJustify className="w-3 h-3" />} Long
+                    <Target className="w-3 h-3" /> Points Clés
                 </button>
                 <button
                     onClick={() => handleLengthChange('ANALYST')}
                     aria-pressed={summaryLength === 'ANALYST'}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${!isPremium ? 'opacity-60 cursor-pointer' : ''} ${summaryLength === 'ANALYST' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
-                    title="Analyse structurée (Thèse, Objectif, Conclusions)"
+                    title="Analyse structurée"
                 >
-                    {!isPremium ? <Lock className="w-3 h-3" /> : <Briefcase className="w-3 h-3" />} Analyste
+                    {!isPremium ? <Lock className="w-3 h-3" /> : <Briefcase className="w-3 h-3" />} Analytique
                 </button>
                 <button
-                    onClick={() => handleLengthChange('TEACHER')}
-                    aria-pressed={summaryLength === 'TEACHER'}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${!isPremium ? 'opacity-60 cursor-pointer' : ''} ${summaryLength === 'TEACHER' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
-                    title="Mode Professeur (Concepts & Définitions)"
+                    onClick={() => handleLengthChange('MEDIUM')}
+                    aria-pressed={summaryLength === 'MEDIUM'}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${summaryLength === 'MEDIUM' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                    title="Résumé Standard"
                 >
-                    {!isPremium ? <Lock className="w-3 h-3" /> : <GraduationCap className="w-3 h-3" />} Professeur
-                </button>
-                <button
-                    onClick={() => handleLengthChange('EXAM')}
-                    aria-pressed={summaryLength === 'EXAM'}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${!isPremium ? 'opacity-60 cursor-pointer' : ''} ${summaryLength === 'EXAM' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
-                    title="Flashcards et QCM"
-                >
-                    {!isPremium ? <Lock className="w-3 h-3" /> : <FileQuestion className="w-3 h-3" />} Révision
-                </button>
-                <button
-                    onClick={() => handleLengthChange('APPLICATIONS')}
-                    aria-pressed={summaryLength === 'APPLICATIONS'}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${!isPremium ? 'opacity-60 cursor-pointer' : ''} ${summaryLength === 'APPLICATIONS' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}`}
-                    title="Relations et Applications Pratiques"
-                >
-                    {!isPremium ? <Lock className="w-3 h-3" /> : <Zap className="w-3 h-3" />} Applications
+                    <AlignCenter className="w-3 h-3" /> Standard
                 </button>
             </div>
 
