@@ -2,9 +2,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { FileData, Flashcard, QuizQuestion, Message, QAPair, StudyGuideSection, Quote, Language } from "../types";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const MODEL_NAME = 'gemini-2.5-flash'; // Fast model for interactive tasks
+// Initialize Gemini Client lazily to avoid top-level execution errors
+let aiClient: GoogleGenAI | null = null;
+
+const getAi = () => {
+  if (!aiClient) {
+    // Process.env.API_KEY is assumed to be available
+    aiClient = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+  return aiClient;
+};
+
+const MODEL_NAME = 'gemini-2.5-flash';
 
 // Helper to construct the PDF part
 const getPdfPart = (file: FileData) => ({
@@ -18,7 +27,6 @@ const getPdfPart = (file: FileData) => ({
 const cleanJsonString = (text: string): string => {
   if (!text) return "[]";
   let cleaned = text.trim();
-  // Remove ```json and ``` wrapping if present
   if (cleaned.startsWith('```json')) {
     cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
   } else if (cleaned.startsWith('```')) {
@@ -30,14 +38,10 @@ const cleanJsonString = (text: string): string => {
 // Helper for cleaning Mermaid code
 const cleanMermaidString = (text: string): string => {
   if (!text) return "";
-  
-  // Try to extract from code block if present
   const match = text.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/);
   if (match && match[1]) {
     return match[1].trim();
   }
-
-  // Fallback cleanup for raw text or unclosed blocks
   return text.trim()
     .replace(/^```(?:mermaid)?\s*/, '')
     .replace(/\s*```$/, '')
@@ -46,6 +50,7 @@ const cleanMermaidString = (text: string): string => {
 
 export const getDocumentStructure = async (file: FileData): Promise<string[]> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -75,6 +80,7 @@ export const getDocumentStructure = async (file: FileData): Promise<string[]> =>
 
 export const generateStudyGuide = async (file: FileData): Promise<StudyGuideSection[]> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -178,6 +184,7 @@ export const generateHighlights = async (file: FileData, length: SummaryLength =
   }
 
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -199,6 +206,7 @@ export const generateHighlights = async (file: FileData, length: SummaryLength =
 
 export const generateMindmap = async (file: FileData): Promise<string> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -220,6 +228,7 @@ export const generateMindmap = async (file: FileData): Promise<string> => {
 
 export const generateKeyQuotes = async (file: FileData): Promise<Quote[]> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -261,6 +270,7 @@ export const generateQuiz = async (
   focusTopics: string[] = []
 ): Promise<QuizQuestion[]> => {
   try {
+    const ai = getAi();
     let prompt = `Crée un quiz de ${numQuestions} questions à choix multiples basé sur ce document.`;
     
     if (focusTopics.length > 0) {
@@ -305,6 +315,7 @@ export const generateQuiz = async (
 
 export const generateFlashcards = async (file: FileData): Promise<Flashcard[]> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -341,6 +352,7 @@ export const generateFlashcards = async (file: FileData): Promise<Flashcard[]> =
 
 export const generateFAQ = async (file: FileData): Promise<QAPair[]> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -377,6 +389,7 @@ export const generateFAQ = async (file: FileData): Promise<QAPair[]> => {
 
 export const generateFileDescription = async (file: FileData): Promise<string> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -395,6 +408,7 @@ export const generateFileDescription = async (file: FileData): Promise<string> =
 
 export const generateSuggestedQuestions = async (file: FileData): Promise<string[]> => {
   try {
+    const ai = getAi();
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
@@ -430,7 +444,7 @@ export const sendChatMessage = async (
   newMessage: string
 ): Promise<string> => {
   try {
-    // Construct the history for the stateless API call
+    const ai = getAi();
     const contents = [
       {
         role: 'user',
