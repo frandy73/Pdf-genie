@@ -12,6 +12,7 @@ import { UpgradeModal } from './components/UpgradeModal';
 import { MindmapMode } from './components/MindmapMode';
 import { KeyQuotesMode } from './components/KeyQuotesMode';
 import { generateFileDescription } from './services/geminiService';
+import { saveSession, getSession, clearSession } from './services/storageService';
 import { FileData, AppMode } from './types';
 import { MessageSquare, BookOpen, BrainCircuit, GraduationCap, Sparkles, LogOut, LayoutDashboard, CircleHelp, FileText, Loader2, Moon, Sun, Crown, Lock, Compass, Bot, ArrowRight, Target, Network, Quote } from 'lucide-react';
 
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   const [file, setFile] = useState<FileData | null>(null);
   const [mode, setMode] = useState<AppMode>(AppMode.UPLOAD);
   const [fileDescription, setFileDescription] = useState<string>('');
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   
   // Monetization State
   const [isPremium, setIsPremium] = useState(false);
@@ -31,6 +33,36 @@ const App: React.FC = () => {
     }
     return false;
   });
+
+  // Restore session on mount
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const session = await getSession();
+        if (session && session.file) {
+          setFile(session.file);
+          setMode(session.mode);
+          setFileDescription(session.fileDescription);
+        }
+      } catch (error) {
+        console.error("Error restoring session:", error);
+      } finally {
+        setIsRestoringSession(false);
+      }
+    };
+    restoreSession();
+  }, []);
+
+  // Save session on changes
+  useEffect(() => {
+    if (file) {
+      // Debounce saving slightly to avoid spamming IndexedDB on rapid mode switches
+      const timeoutId = setTimeout(() => {
+        saveSession(file, mode, fileDescription);
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [file, mode, fileDescription]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -59,8 +91,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm("Voulez-vous vraiment fermer ce document et revenir à l'accueil ?")) {
+      await clearSession();
       setFile(null);
       setMode(AppMode.UPLOAD);
       setFileDescription('');
@@ -270,6 +303,15 @@ const App: React.FC = () => {
         );
     }
   };
+
+  if (isRestoringSession) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 transition-colors duration-300">
+         <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-500" />
+         <p className="font-medium animate-pulse">Restauration de votre session...</p>
+      </div>
+    );
+  }
 
   if (mode === AppMode.UPLOAD || !file) {
     return (
